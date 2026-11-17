@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Dual AI</title>
+<style>
+:root {
+  --bg: #070807;
+  --panel: #0f1210;
+  --surface: #141816;
+  --border: #232a26;
+  --text: #f5f5f5;
+  --muted: #8a9a92;
+  --accent: #d7f5e4;
+  --accent-dim: #8fbfa4;
+  --user: #1a2e24;
+  --gpt: #1a2430;
+  --grok: #2a1a28;
+  --warning: #e6c27a;
+  --shadow: 0 2px 12px rgba(0,0,0,0.4);
+}
+* { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+header {
+  padding: 16px 20px 12px;
+  background: var(--bg);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.logo {
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: -0.4px;
+}
+.logo span { color: var(--accent); }
+.header-actions { display: flex; gap: 6px; }
+.icon-btn {
+  background: var(--surface);
+  border: none;
+  color: var(--accent);
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#settings-panel {
+  display: none;
+  padding: 16px 20px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--border);
+  max-height: 50vh;
+  overflow-y: auto;
+}
+#settings-panel label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 6px; font-weight: 600; }
+#settings-panel input, #settings-panel textarea {
+  width: 100%;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 12px;
+  font-size: 15px;
+}
+#settings-panel textarea { min-height: 70px; }
+.toggle-row { display: flex; align-items: center; gap: 12px; margin: 12px 0; }
+.note { font-size: 12px; color: var(--muted); margin-top: 12px; line-height: 1.4; }
+#chat {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  -webkit-overflow-scrolling: touch;
+}
+.msg {
+  max-width: 82%;
+  padding: 12px 16px;
+  border-radius: 20px;
+  line-height: 1.45;
+  font-size: 16px;
+  word-wrap: break-word;
+  box-shadow: var(--shadow);
+}
+.msg.user {
+  align-self: flex-end;
+  background: var(--user);
+  border-bottom-right-radius: 6px;
+}
+.msg.gpt {
+  align-self: flex-start;
+  background: var(--gpt);
+  border-bottom-left-radius: 6px;
+}
+.msg.grok {
+  align-self: flex-start;
+  background: var(--grok);
+  border-bottom-left-radius: 6px;
+}
+.msg.system {
+  align-self: center;
+  background: transparent;
+  color: var(--muted);
+  font-size: 13px;
+  box-shadow: none;
+  max-width: 90%;
+  text-align: center;
+}
+.who {
+  font-size: 11px;
+  font-weight: 700;
+  opacity: 0.6;
+  margin-bottom: 4px;
+  letter-spacing: 0.4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.speak-btn {
+  background: none;
+  border: none;
+  color: var(--accent-dim);
+  font-size: 16px;
+  padding: 0;
+}
+.msg img { max-width: 100%; border-radius: 12px; margin-top: 8px; }
+#input-area {
+  padding: 12px 16px 28px;
+  background: var(--bg);
+  flex-shrink: 0;
+}
+.input-row {
+  display: flex;
+  gap: 8px;
+  align-items: flex-end;
+  background: var(--surface);
+  border-radius: 22px;
+  padding: 6px 6px 6px 16px;
+  border: 1px solid var(--border);
+}
+#user-input {
+  flex: 1;
+  padding: 10px 0;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 16px;
+  resize: none;
+  min-height: 40px;
+  max-height: 100px;
+  outline: none;
+}
+#mic-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  background: transparent;
+  color: var(--accent);
+  font-size: 18px;
+}
+#mic-btn.listening { color: #ff6b6b; }
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+.actions button {
+  flex: 0 0 auto;
+  padding: 10px 16px;
+  border: none;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 700;
+  color: #0a0a0a;
+  white-space: nowrap;
+}
+.gpt-btn { background: #9fd4ff; }
+.grok-btn { background: #e0b3ff; }
+.both-btn { background: var(--accent); }
+.talk-btn { background: var(--warning); color: #1a1408; }
+.img-btn { background: #ffb3c6; }
+.export-btn { background: #c8e6c9; }
+#status {
+  text-align: center;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 8px;
+  min-height: 16px;
+}
+.loading::after { content: "●"; animation: blink 1s infinite; margin-left: 4px; }
+@keyframes blink { 50% { opacity: 0; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">Dual <span>AI</span></div>
+  <div class="header-actions">
+    <button class="icon-btn" onclick="exportChat()" title="Export">↓</button>
+    <button class="icon-btn" onclick="clearChat()" title="Clear">✕</button>
+    <button class="icon-btn" onclick="toggleSettings()" title="Settings">⚙</button>
+  </div>
+</header>
+<div id="settings-panel">
+  <label>OpenAI API Key</label>
+  <input id="openai-key" type="password" placeholder="sk-..." />
+  <label>xAI API Key</label>
+  <input id="xai-key" type="password" placeholder="xai-..." />
+  <label>ChatGPT Model</label>
+  <input id="gpt-model" value="gpt-4o" />
+  <label>Grok Model</label>
+  <input id="grok-model" value="grok-4.7" />
+  <label>Temperature</label>
+  <input id="temperature" type="number" value="0.7" min="0" max="2" step="0.1" />
+  <label>System Prompt</label>
+  <textarea id="system-prompt" placeholder="Optional system prompt..."></textarea>
+  <label>Max turns (They Chat)</label>
+  <input id="max-turns" type="number" value="6" min="2" max="20" />
+  <div class="toggle-row">
+    <input type="checkbox" id="auto-speak" />
+    <span>Auto-speak replies</span>
+  </div>
+  <div class="note">Keys stay only on this device. Voice works best in Safari.</div>
+</div>
+<div id="chat"></div>
+<div id="input-area">
+  <div class="input-row">
+    <textarea id="user-input" placeholder="Message..." rows="1"></textarea>
+    <button id="mic-btn">🎤</button>
+  </div>
+  <div class="actions">
+    <button class="gpt-btn" onclick="sendTo('gpt')">ChatGPT</button>
+    <button class="grok-btn" onclick="sendTo('grok')">Grok</button>
+    <button class="both-btn" onclick="sendBoth()">Both</button>
+    <button class="talk-btn" onclick="startConversation()">They Chat</button>
+    <button class="img-btn" onclick="generateImage()">Image</button>
+    <button class="export-btn" onclick="exportChat()">Export</button>
+  </div>
+  <div id="status"></div>
+</div>
+<script>
+const chatEl = document.getElementById('chat');
+const inputEl = document.getElementById('user-input');
+const statusEl = document.getElementById('status');
+const micBtn = document.getElementById('mic-btn');
+let history = [];
+let stopRequested = false;
+let recognition = null;
+let isListening = false;
+['openai-key','xai-key','gpt-model','grok-model','temperature','system-prompt','max-turns'].forEach(id => {
+  const el = document.getElementById(id);
+  const key = 'dual_' + id;
+  if (localStorage.getItem(key)) el.value = localStorage.getItem(key);
+  el.addEventListener('input', () => localStorage.setItem(key, el.value));
+});
+const autoSpeakEl = document.getElementById('auto-speak');
+autoSpeakEl.checked = localStorage.getItem('dual_auto_speak') === 'true';
+autoSpeakEl.addEventListener('change', () => localStorage.setItem('dual_auto_speak', autoSpeakEl.checked));
+function toggleSettings() {
+  const p = document.getElementById('settings-panel');
+  p.style.display = p.style.display === 'block' ? 'none' : 'block';
+}
+function clearChat() {
+  if (!confirm('Clear this chat?')) return;
+  history = [];
+  chatEl.innerHTML = '';
+  addSystem('Chat cleared');
+}
+function addSystem(text) {
+  const div = document.createElement('div');
+  div.className = 'msg system';
+  div.textContent = text;
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+}
+function speak(text) {
+  if (!window.speechSynthesis) return;
+  const utter = new SpeechSynthesisUtterance(text);
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(utter);
+}
+function addMsg(who, text, imageUrl = null) {
+  const div = document.createElement('div');
+  div.className = `msg ${who}`;
+  const whoLabel = who === 'user' ? 'You' : who === 'gpt' ? 'ChatGPT' : who === 'grok' ? 'Grok' : who;
+  div.innerHTML = `<div class="who">${whoLabel} <button class="speak-btn" onclick="speak(this.closest('.msg').innerText)">🔊</button></div>${text.replace(/\n/g, '<br>')}`;
+  if (imageUrl) {
+    const img = document.createElement('img');
+    img.src = imageUrl;
+    div.appendChild(img);
+  }
+  chatEl.appendChild(div);
+  chatEl.scrollTop = chatEl.scrollHeight;
+  if (who !== 'system') history.push({ role: who === 'user' ? 'user' : 'assistant', content: text, who });
+  if ((who === 'gpt' || who === 'grok') && autoSpeakEl.checked) speak(text);
+}
+function setStatus(t, loading = false) {
+  statusEl.textContent = t;
+  statusEl.className = loading ? 'loading' : '';
+}
+function getMessagesForAPI() {
+  const sys = document.getElementById('system-prompt').value.trim();
+  const msgs = [];
+  if (sys) msgs.push({ role: 'system', content: sys });
+  history.forEach(h => msgs.push({ role: h.role, content: h.content }));
+  return msgs;
+}
+async function callAPI(provider, messages) {
+  const openaiKey = document.getElementById('openai-key').value.trim();
+  const xaiKey = document.getElementById('xai-key').value.trim();
+  const temp = parseFloat(document.getElementById('temperature').value) || 0.7;
+  let url, key, model;
+  if (provider === 'gpt') {
+    if (!openaiKey) throw new Error('Missing OpenAI key');
+    url = 'https://api.openai.com/v1/chat/completions';
+    key = openaiKey;
+    model = document.getElementById('gpt-model').value.trim() || 'gpt-4o';
+  } else {
+    if (!xaiKey) throw new Error('Missing xAI key');
+    url = 'https://api.x.ai/v1/chat/completions';
+    key = xaiKey;
+    model = document.getElementById('grok-model').value.trim() || 'grok-4.7';
+  }
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
+    body: JSON.stringify({ model, messages, temperature: temp })
+  });
+  if (!res.ok) throw new Error(`${provider.toUpperCase()} ${res.status}`);
+  const data = await res.json();
+  return data.choices?.[0]?.message?.content || '(empty)';
+}
+async function sendTo(provider) {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  inputEl.value = '';
+  addMsg('user', text);
+  setStatus(`Asking ${provider === 'gpt' ? 'ChatGPT' : 'Grok'}…`, true);
+  try {
+    const reply = await callAPI(provider, getMessagesForAPI());
+    addMsg(provider, reply);
+    setStatus('');
+  } catch (e) {
+    setStatus(e.message);
+    addMsg(provider, `⚠️ ${e.message}`);
+  }
+}
+async function sendBoth() {
+  const text = inputEl.value.trim();
+  if (!text) return;
+  inputEl.value = '';
+  addMsg('user', text);
+  setStatus('Asking both…', true);
+  try {
+    const [gptReply, grokReply] = await Promise.all([
+      callAPI('gpt', getMessagesForAPI()).catch(e => `Error: ${e.message}`),
+      callAPI('grok', getMessagesForAPI()).catch(e => `Error: ${e.message}`)
+    ]);
+    addMsg('gpt', gptReply);
+    addMsg('grok', grokReply);
+    setStatus('');
+  } catch (e) { setStatus(e.message); }
+}
+async function startConversation() {
+  const topic = inputEl.value.trim();
+  if (!topic) { setStatus('Type a topic first'); return; }
+  inputEl.value = '';
+  addMsg('user', `Topic: ${topic}`);
+  stopRequested = false;
+  const maxTurns = parseInt(document.getElementById('max-turns').value) || 6;
+  setStatus('They are chatting…', true);
+  let current = 'grok';
+  let turns = 0;
+  while (turns < maxTurns && !stopRequested) {
+    setStatus(`${current === 'grok' ? 'Grok' : 'ChatGPT'}…`, true);
+    try {
+      const reply = await callAPI(current, getMessagesForAPI());
+      addMsg(current, reply);
+      current = current === 'grok' ? 'gpt' : 'grok';
+      turns++;
+      await new Promise(r => setTimeout(r, 500));
+    } catch (e) {
+      setStatus(e.message);
+      break;
+    }
+  }
+  if (!stopRequested) setStatus('Done');
+}
+async function generateImage() {
+  const prompt = inputEl.value.trim();
+  if (!prompt) { setStatus('Type an image prompt'); return; }
+  const openaiKey = document.getElementById('openai-key').value.trim();
+  if (!openaiKey) { setStatus('OpenAI key needed'); return; }
+  inputEl.value = '';
+  addMsg('user', `Image: ${prompt}`);
+  setStatus('Generating…', true);
+  try {
+    const res = await fetch('https://api.openai.com/v1/images/generations', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` },
+      body: JSON.stringify({ model: 'dall-e-3', prompt, n: 1, size: '1024x1024' })
+    });
+    if (!res.ok) throw new Error('Image failed');
+    const data = await res.json();
+    const url = data.data?.[0]?.url;
+    if (url) addMsg('gpt', 'Image:', url);
+    setStatus('');
+  } catch (e) {
+    setStatus(e.message);
+  }
+}
+function exportChat() {
+  if (!history.length) { setStatus('Nothing to export'); return; }
+  let md = '# Dual AI Chat\n\n';
+  history.forEach(h => {
+    const who = h.who === 'user' ? 'You' : h.who === 'gpt' ? 'ChatGPT' : 'Grok';
+    md += `**${who}:**\n${h.content}\n\n---\n\n`;
+  });
+  const blob = new Blob([md], { type: 'text/markdown' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `dual-ai-${new Date().toISOString().slice(0,10)}.md`;
+  a.click();
+  setStatus('Exported');
+}
+function initVoice() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { micBtn.style.display = 'none'; return; }
+  recognition = new SpeechRecognition();
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = 'en-US';
+  recognition.onstart = () => { isListening = true; micBtn.classList.add('listening'); setStatus('Listening…'); };
+  recognition.onend = () => { isListening = false; micBtn.classList.remove('listening'); if (statusEl.textContent === 'Listening…') setStatus(''); };
+  recognition.onresult = e => {
+    let t = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
+    inputEl.value = t;
+  };
+  recognition.onerror = () => { isListening = false; micBtn.classList.remove('listening'); setStatus(''); };
+  micBtn.onclick = () => isListening ? recognition.stop() : recognition.start();
+}
+inputEl.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendTo('gpt'); }
+});
+initVoice();
+addSystem('Ready. Add keys in settings.');
+</script>
+</body>
+</html>
